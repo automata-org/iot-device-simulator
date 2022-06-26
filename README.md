@@ -134,7 +134,11 @@ def process_request(registers, payload, notify_func):
 ## Contributors
 
 * [Michelangelo Setaro](https://github.com/mksetaro) 
-  
+* [Giorgio Crovetti]() 
+* [Margherita Lia]()
+* [Luca Pinelli]() 
+* [Michele De Giulio]()
+   
 ## Contribution
 
 If you wish to contribute contact:
