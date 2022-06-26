@@ -104,6 +104,19 @@ class IOTUnit:
         req_thread = threading.Thread(target = req_func, args=(self.registers, payload, self.notifiers[notifier_name_key].publish_notification))
         req_thread.start()
 
-class IotUnitFactory:
+class IOTUnitFactory:
     def __init__(self) -> None:
+        pass
+    def produce_iot_units(self):
+        iot_units = []
+        #TODO -> create list of iotunits
+        #create_iot_units()
+        #start_iot_units()
+        return iot_units
+    def create_iot_units(self, iotunits, cfgs):
+        #TODO fill iot_units_list
+        # IOTUnit(args....)
+        pass
+    def start_iot_units(self):
+        #TODO start clients (thread/scheduler/mqtt...etc)
         pass
