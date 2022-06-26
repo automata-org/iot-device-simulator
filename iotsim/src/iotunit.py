@@ -103,3 +103,7 @@ class IOTUnit:
     def process_request_threaded(self, req_func, payload, notifier_name_key):
         req_thread = threading.Thread(target = req_func, args=(self.registers, payload, self.notifiers[notifier_name_key].publish_notification))
         req_thread.start()
+
+class IotUnitFactory:
+    def __init__(self) -> None:
+        pass
