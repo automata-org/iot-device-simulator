@@ -8,8 +8,8 @@ import logging
 from os import sys, environ
 
 import iotsim.config.iotconfig as cfg
-from iotunit import IOTUnit
-
+#from iotunit import IOTUnit, IOTUnitFactory
+import iotunit
 
 sys.path.append(cfg.mqtt_modules['modulesFolder'])
 logging.basicConfig(filename=cfg.logger['logFilePath'], filemode='w', format='%(asctime)s -%(levelname)s- %(message)s', level=cfg.logger['loggerLevel']) 
@@ -25,6 +25,8 @@ class IOTContainer:
         self.scheduler = schedule
         self.scheduler_thread = threading.Thread(name = 'scheduler daemon', target = self.daemon_scheduler)
         self.scheduler_thread.setDaemon(True)
+        self.unitList = json.load(open(cfg.mqtt_modules['iotUnitList']))
+        self.iot_factory = iotunit.IOTUnitFactory()
         self.init_iot_units()
 
     def signal_handler(self, signum, frame):
@@ -32,21 +34,23 @@ class IOTContainer:
         logging.info("shutdown signal received")
         raise ProgramKilled
 
-    def init_iot_units(self):
-        try:
-            self.unitList = json.load(open(cfg.mqtt_modules['iotUnitList']))
-            for unit in self.unitList:
-                unit_tmp = IOTUnit(unit, cfg.mqtt_client, self.scheduler)
-                self.unitMap[unit['name']] = unit_tmp
-        except Exception:
-           logging.error("init iot units failed")
-           raise ValueError
-        logging.info("iot units initialized -> %s", self.unitMap.keys())
+    def init_iot_units(self):       
+        self.unitMap = self.iot_factory.produce_iot_unit(self.unitList, cfg.cfg.mqtt_client, self.scheduler)
+        # try:
+        #     
+        #     for unit in self.unitList:
+        #         unit_tmp = IOTUnit(unit, cfg.mqtt_client, self.scheduler)
+        #         self.unitMap[unit['name']] = unit_tmp
+        # except Exception:
+        #    logging.error("init iot units failed")
+        #    raise ValueError
+        # logging.info("iot units initialized -> %s", self.unitMap.keys())
 
     def mqtt_threads_start(self):
-        for unit in self.unitMap.values():
-            unit.start_mqtt_loop()
-        logging.info("clients loop started")
+        self.iot_factory.start_iot_units(self.unitMap)
+        # for unit in self.unitMap.values():
+        #     unit.start_mqtt_loop()
+        # logging.info("clients loop started")
     
     def mqtt_threads_stop(self):
         for unit in self.unitMap.values():

@@ -104,19 +104,29 @@ class IOTUnit:
         req_thread = threading.Thread(target = req_func, args=(self.registers, payload, self.notifiers[notifier_name_key].publish_notification))
         req_thread.start()
 
+
 class IOTUnitFactory:
+    
     def __init__(self) -> None:
         pass
-    def produce_iot_units(self):
-        iot_units = []
-        #TODO -> create list of iotunits
-        #create_iot_units()
-        #start_iot_units()
-        return iot_units
-    def create_iot_units(self, iotunits, cfgs):
-        #TODO fill iot_units_list
-        # IOTUnit(args....)
-        pass
-    def start_iot_units(self):
-        #TODO start clients (thread/scheduler/mqtt...etc)
-        pass
+
+    def produce_iot_unit(self, units_cfg, client_cfg, scheduler):
+        iot_units_map = {}
+        create_iot_units(iot_units_map, units_cfg, client_cfg, scheduler)
+#        start_iot_units(iot_units_map)
+        return iot_units_map
+    
+    def create_iot_units(self, iot_units_map, units_cfg, client_cfg, scheduler):
+        try:
+            for unit in units_cfg:
+                unit_tmp = IOTUnit(unit, client_cfg, scheduler)
+                iot_units_map[unit['name']] = unit_tmp
+        except Exception:
+           logging.error("init iot units failed")
+           raise ValueError
+        logging.info("iot units initialized -> %s", iot_units_map.keys())
+    
+    def start_iot_units(self, iot_units_map):
+        for unit in iot_units_map.values():
+            unit.start_mqtt_loop()
+        logging.info("clients loop started")
