@@ -107,31 +107,82 @@ class IOTUnit:
         req_thread.start()
 
 class IOTUnitBuilder:
-    def __init__(self) -> None:
+    def init(self) -> None:
         pass
-    def build_iot_unit(self, cfgFile):
+    def build_iot_unit(self, client_cfg, units_cfg, scheduler):
         iot_unit = IOTUnit()
-        #build_with_ssl_context(iot_unit, cfgfile[certificates])
-        #build_with_iot_client(iot_unit, cfgfile[client-mqtt])
-        #build_with_publishers(iot_unit, cfgfile[publishers])
-        #build_with_subscribers(iot_unit, cfgfile[subscriber])
-        #build_with_control_loop(iot_unit, cfgfile[control_loop])
+        build_with_ssl_context(iot_unit, client_cfg)
+        build_with_iot_client(iot_unit, client_cfg)
+        build_with_publishers(iot_unit, units_cfg, scheduler)
+        build_with_subscribers(iot_unit, units_cfg)
+        build_with_control_loop(iot_unit, units_cfg, scheduler)
         return iot_unit
-    def build_with_ssl_context(self):
-        #TODO build ssl context step 1.a
+
+    def build_with_ssl_context(self, iot_unit, client_cfg):
+        try:
+            if not client_cfg['use_certificates']:
+                return
+            iot_unit.ssl_context = ssl.create_default_context()
+            iot_unit.ssl_context.load_verify_locations(client_cfg['rootCA'])
+            iot_unit.ssl_context.load_cert_chain(client_cfg['clientCertificate'], self.client_cfg['clientKey'])
+        except Exception:
+            logging.error('init_ssl_context failed for %s', iot_unit.name)
+            raise ValueError
+        logging.info('ssl_context created for %s', iot_unit.name)
+        
+    def build_with_iot_client(self, iot_unit, client_cfg):
+        try:
+            iot_unit.client = mqtt.Client()
+            if client_cfg['use_certificates']:
+                iot_unit.client.tls_set_context(iot_unit.ssl_context)
+            iot_unit.client.connect(client_cfg['host'], client_cfg['port'])
+        except Exception:
+            logging.error("init_mqtt_connection failed for %s", iot_unit.name)
+            raise ValueError
+        logging.info('unit %(name)s successfully connected to broker %(host)s:%(port)s', {'name':iot_unit.name,'host':iot_unit.client_cfg['host'],'port':self.client_cfg['port']})
+        
+    def build_with_publishers(self, iot_unit, unit_cfg, scheduler):
+        try:
+            if not units_cfg.has_key("publishers"):
+                return
+            for pub in units_cfg['publishers']:
+                pub_tmp = DataPublisher(scheduler, pub, iot_unit)
+                if pub['type'] == types.NOTIFICATION_TYPE:
+                   iot_unit.notifiers[pub['id']] = pub_tmp
+                else:
+                   iot_unit.publishers[pub['id']] = pub_tmp
+        except Exception:
+            logging.error("init data publishers failed for unit %s", iot_unit.name)
+            raise ValueError
+        logging.debug("init data publisher -notifiers:%(notifiers)s -publishers:%(publishers)s",{'notifiers': iot_unit.notifiers, 'publishers':iot_unit.publishers})
         pass
-    def build_with_iot_client(self):
-        #TODO build iot client step 1.b
+    def build_with_subscribers(self, iot_unit, units_cfg):
+        try: 
+            if not units_cfg.has_key("subscribers"):
+                return
+            for sub in units_cfg['subscribers']:
+                sub_tmp = DataSubscriber(sub, iot_unit)
+                iot_unit.subscribers[sub['id']] = sub_tmp
+        except Exception:
+            logging.error("init data subscribers failed for unit %s", iot_unit.name)
+            raise ValueError
+        logging.debug("init data subscribers -subscribers:%s", iot_unit.subscribers)
         pass
-    def build_with_publishers(self):
-        #TODO build iot publishers step 2
-        pass
-    def build_with_subscribers(self):
-        #TODO build iot subscribers step 3
-        pass
-    def build_with_control_loop(self):
-        #TODO build control loop step 4
-        pass
+    def build_with_control_loop(self, iot_unit, unit_cfg, scheduler):
+        try:
+            if not units_cfg.has_key("control_loop_module"):
+                return
+            control_loop_module = unit_cfg['control_loop_module']
+            if control_loop_module is None:
+                pass
+            else:
+                sleep_time = unit_cfg['control_loop_sleep_ms'] 
+                iot_unit.control_loop_module = importlib.import_module(control_loop_module)
+                scheduler.every(sleep_time/1000).seconds.do(iot_unit.control_loop_threaded, iot_unit.control_loop_module.run)
+                logging.info("control loop %(loop)s initialized for unit %(name)s",{'loop':control_loop_module, 'name':iot_unit.name})
+        except Exception:
+            logging.error("failed to initialize control loop for unit %s", iot_unit.name)
+            raise ValueError
 
 
 #--> IoTUnit(empty) -> ssl_context() -> IoTUnit(sslcontext) -> iot_client() -> IoTUnit(sslcontext + iotclient) 
