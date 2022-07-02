@@ -8,7 +8,7 @@ import logging
 from os import sys, environ
 
 import iotsim.config.iotconfig as cfg
-from iotunit import IOTUnit
+from iotunit import IOTUnit, IOTUnitBuilder
 
 
 sys.path.append(cfg.mqtt_modules['modulesFolder'])
@@ -35,8 +35,10 @@ class IOTContainer:
     def init_iot_units(self):
         try:
             self.unitList = json.load(open(cfg.mqtt_modules['iotUnitList']))
+            unit_builder = IOTUnitBuilder()
             for unit in self.unitList:
-                unit_tmp = IOTUnit(unit, cfg.mqtt_client, self.scheduler)
+                unit_tmp = unit_builder.build_iot_unit(cfg.mqtt_client, unit, self.scheduler)
+                #IOTUnit(unit, cfg.mqtt_client, self.scheduler)
                 self.unitMap[unit['name']] = unit_tmp
         except Exception:
            logging.error("init iot units failed")
