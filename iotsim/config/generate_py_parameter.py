@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from posixpath import splitdrive
 from jsonschemacodegen import python as pygen
 import json
 import os

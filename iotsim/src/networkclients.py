@@ -116,7 +116,6 @@ class ClientBuilder:
     def build(client_parameters):
         if GetType(client_parameters.GetType().Get()) == ClientType.mqtt:
             client = MQTTClient(client_parameters=client_parameters)
-            logging.INFO
             return client
         else:
             logging.error("Client type %s not supported",
