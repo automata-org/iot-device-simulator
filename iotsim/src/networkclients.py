@@ -69,6 +69,7 @@ class MQTTClient(Client):
             self._client = mqtt.Client(client_id=client_cfg.GetId().Get())
             if client_cfg.GetRootCa().Get() != "":
                 self._init_ssl_context(client_cfg=client_cfg)
+                self._client.tls_set_context(self.ssl_context)
             self._client.connect(client_cfg.GetHost().Get(),
                                  client_cfg.GetPort().Get())
         except Exception:
